@@ -1,0 +1,82 @@
+services:
+  #configserver service
+  configserver:
+    image: "sandeepgottipati/configserver:v2"
+    container_name: "configserver-ms"
+    ports:
+      - "8071:8071"
+    healthcheck:
+      test: "curl --fail --silent localhost:8071/actuator/health/readiness | grep UP || exit 1"
+      timeout: 5s
+      retries: 5
+      interval: 10s
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 700m
+    networks:
+      - eazybank
+  #accouts service
+  accounts:
+    image: "sandeepgottipati/accounts:v2"
+    container_name: "accounts-ms"
+    ports:
+      - "8080:8080"
+    networks:
+      - eazybank
+    deploy:
+      resources:
+        limits:
+          memory: 700m
+    depends_on:
+      configserver:
+        condition: service_healthy
+    environment:
+     SPRING_PROFILES_ACTIVE: prod
+     SPRING_APPLICATION_NAME: "accounts"
+     SPRING_CONFIG_IMPORT: configserver:http://configserver:8071/
+
+
+#loans service
+  loans:
+    image: "sandeepgottipati/loans:v2"
+    container_name: "loans-ms"
+    ports:
+      - "8090:8090"
+    networks:
+      - eazybank
+    deploy:
+      resources:
+        limits:
+          memory: 700m
+    depends_on:
+      configserver:
+        condition: service_healthy
+    environment:
+      SPRING_APPLICATION_NAME: "loans"
+      SPRING_CONFIG_IMPORT: configserver:http://configserver:8071/
+      SPRING_PROFILES_ACTIVE: prod
+#cards-ms
+  cards:
+    image: "sandeepgottipati/cards:v2"
+    container_name: "cards-ms"
+    ports:
+      - "9000:9000"
+    networks:
+      - eazybank
+    deploy:
+      resources:
+        limits:
+          memory: 700m
+    depends_on:
+      configserver:
+        condition: service_healthy
+    environment:
+      SPRING_APPLICATION_NAME: "cards"
+      SPRING_CONFIG_IMPORT: configserver:http://configserver:8071/
+      SPRING_PROFILES_ACTIVE: prod
+#network configuration
+networks:
+  eazybank:
+    driver: bridge
